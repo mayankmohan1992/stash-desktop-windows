@@ -74,7 +74,7 @@ namespace StashLauncher
         
         private const string RepoOwner = "mayankmohan1992"; // Replace with your GitHub username
         private const string RepoName = "stash-desktop-windows"; // Replace with your repository name (e.g. stash-desktop-windows)
-        private const string LauncherVersion = "1.0.1";
+        private const string LauncherVersion = "1.0.2";
         private const string RegistryStartupKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
         private const string AppName = "Stash";
 
@@ -427,34 +427,34 @@ namespace StashLauncher
             string[] subdirs = Directory.GetDirectories(tempExtractDir);
             if (subdirs.Length > 0)
             {
-                string sourceDir = subdirs[0]; // e.g. stash-main
+                string sourceDir = subdirs[0]; // e.g. stash-desktop-windows-main
 
-                if (Directory.Exists(appDir))
+                Directory.CreateDirectory(appDir);
+
+                // Clean up only the directories we update (preserve node_modules, models, data)
+                string[] dirsToClean = { "public", "lib", ".github", "docker" };
+                foreach (string dirName in dirsToClean)
                 {
-                    // Preserve models and data folders if they exist
-                    string oldModelsDir = Path.Combine(appDir, "models");
-                    string oldDataDir = Path.Combine(appDir, "data");
-                    string newModelsDir = Path.Combine(stashDir, "models_backup");
-                    string newDataDir = Path.Combine(stashDir, "data_backup");
-
-                    if (Directory.Exists(oldModelsDir)) Directory.Move(oldModelsDir, newModelsDir);
-                    if (Directory.Exists(oldDataDir)) Directory.Move(oldDataDir, newDataDir);
-
-                    Directory.Delete(appDir, true);
-                    Directory.CreateDirectory(appDir);
-
-                    if (Directory.Exists(newModelsDir)) Directory.Move(newModelsDir, oldModelsDir);
-                    if (Directory.Exists(newDataDir)) Directory.Move(newDataDir, oldDataDir);
+                    string targetPath = Path.Combine(appDir, dirName);
+                    if (Directory.Exists(targetPath))
+                    {
+                        try { Directory.Delete(targetPath, true); } catch {}
+                    }
                 }
-                else
+
+                // Clean up root files from the appDir (preserve folders)
+                foreach (string filePath in Directory.GetFiles(appDir))
                 {
-                    Directory.CreateDirectory(appDir);
+                    try { File.Delete(filePath); } catch {}
                 }
 
                 MoveDirectoryContents(sourceDir, appDir);
             }
 
-            Directory.Delete(tempExtractDir, true);
+            if (Directory.Exists(tempExtractDir))
+            {
+                Directory.Delete(tempExtractDir, true);
+            }
         }
 
         private void MoveDirectoryContents(string source, string target)
@@ -597,16 +597,19 @@ namespace StashLauncher
                 nodeProcess = null;
             }
             
-            // Additional safety cleanup: find any stray node processes running our server.js in appDir
+            // Additional safety cleanup: find and kill any stray node processes running from our Stash folder
             try
             {
                 foreach (var p in Process.GetProcessesByName("node"))
                 {
                     try
                     {
-                        // Check if the process path or command arguments relate to stash (requires matching process names)
-                        // Because parsing process command lines in pure C# .NET 4.8 is complex, we just kill the child process we spawned.
-                        // For a system-wide search, we can use WMI, but let's stick to our tracked child process to be safe.
+                        string modulePath = p.MainModule.FileName;
+                        if (modulePath.StartsWith(stashDir, StringComparison.OrdinalIgnoreCase))
+                        {
+                            p.Kill();
+                            p.WaitForExit(1000);
+                        }
                     }
                     catch {}
                 }
