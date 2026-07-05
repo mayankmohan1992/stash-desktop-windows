@@ -74,7 +74,7 @@ namespace StashLauncher
         
         private const string RepoOwner = "mayankmohan1992"; // Replace with your GitHub username
         private const string RepoName = "stash-desktop-windows"; // Replace with your repository name (e.g. stash-desktop-windows)
-        private const string LauncherVersion = "1.0.0";
+        private const string LauncherVersion = "1.0.1";
         private const string RegistryStartupKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
         private const string AppName = "Stash";
 
