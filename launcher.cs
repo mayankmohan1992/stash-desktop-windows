@@ -487,8 +487,8 @@ namespace StashLauncher
             }
             else
             {
-                psi.FileName = npmCmdPath;
-                psi.Arguments = "install --omit=dev";
+                psi.FileName = "cmd.exe";
+                psi.Arguments = string.Format("/c \"{0}\" install --omit=dev", npmCmdPath);
             }
             psi.WorkingDirectory = appDir;
             psi.UseShellExecute = false;
