@@ -1,0 +1,39 @@
+name: Sync with Upstream
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Run daily at midnight
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout local repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for proper merging
+
+      - name: Configure Git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/savewithstash/stash.git
+
+      - name: Fetch upstream
+        run: |
+          git fetch upstream main
+
+      - name: Merge upstream/main
+        run: |
+          git merge upstream/main --no-edit
+
+      - name: Push changes
+        run: |
+          git push origin main

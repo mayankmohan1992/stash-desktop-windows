@@ -4,3 +4,4 @@ models/
 qvac.config.json
 *.log
 .claude
+Stash.exe

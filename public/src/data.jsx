@@ -184,6 +184,7 @@ const API = {
   // model settings
   async settings() { return await _json(await fetch("/api/settings")); },
   async saveSettings(patch) { return await _json(await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) })); },
+  async checkUpdate() { return await _json(await fetch("/api/check-update")); },
   async status() { return await _json(await fetch("/api/status")); },
 };
 

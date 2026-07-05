@@ -278,6 +278,76 @@ function handleStatus(res) {
   json(res, 200, { ...qvac.status, count: store.count() })
 }
 
+async function handleCheckUpdate(res) {
+  let appUpdateAvailable = false
+  let launcherUpdateAvailable = false
+  let currentSha = ''
+  let latestSha = ''
+  let latestLauncherVersion = ''
+  let launcherDownloadUrl = ''
+
+  // 1. Check local commit SHA
+  try {
+    const shaPath = path.join(__dirname, '..', 'commit_sha.txt')
+    if (existsSync(shaPath)) {
+      currentSha = (await readFile(shaPath, 'utf8')).trim()
+    }
+  } catch (err) {
+    console.error('[update-check] failed to read local SHA:', err.message)
+  }
+
+  // 2. Fetch upstream latest commit SHA from savewithstash/stash
+  try {
+    const upstreamRes = await fetch('https://api.github.com/repos/savewithstash/stash/commits/main', {
+      headers: { 'User-Agent': 'Stash-Windows-Port-Update-Checker' }
+    })
+    if (upstreamRes.ok) {
+      const data = await upstreamRes.json()
+      latestSha = data.sha || ''
+      if (latestSha && currentSha && latestSha !== currentSha) {
+        appUpdateAvailable = true
+      }
+    }
+  } catch (err) {
+    console.error('[update-check] failed to fetch upstream SHA:', err.message)
+  }
+
+  // 3. Check for launcher updates on the user's repository
+  const currentLauncherVer = process.env.STASH_LAUNCHER_VERSION
+  if (currentLauncherVer) {
+    const repoOwner = 'mayankmohan1992'
+    const repoName = 'stash-desktop-windows'
+    if (repoOwner !== 'YOUR_GITHUB_USERNAME' && repoName !== 'YOUR_REPO_NAME') {
+      try {
+        const releaseRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/releases/latest`, {
+          headers: { 'User-Agent': 'Stash-Windows-Port-Update-Checker' }
+        })
+        if (releaseRes.ok) {
+          const data = await releaseRes.json()
+          const tag = data.tag_name || ''
+          latestLauncherVersion = tag.replace(/^v/, '')
+          if (latestLauncherVersion && latestLauncherVersion !== currentLauncherVer) {
+            launcherUpdateAvailable = true
+            launcherDownloadUrl = data.html_url || `https://github.com/${repoOwner}/${repoName}/releases`
+          }
+        }
+      } catch (err) {
+        console.error('[update-check] failed to fetch launcher release:', err.message)
+      }
+    }
+  }
+
+  json(res, 200, {
+    appUpdateAvailable,
+    currentSha,
+    latestSha,
+    launcherUpdateAvailable,
+    currentLauncherVer,
+    latestLauncherVersion,
+    launcherDownloadUrl
+  })
+}
+
 // ---- settings: model selection ------------------------------------------
 function handleGetSettings(res) {
   json(res, 200, { current: settings.get(), presets: qvac.presetInfo() })
@@ -360,6 +430,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, ok ? 200 : 404, { ok })
     }
     if (req.method === 'GET' && p === '/api/status') return handleStatus(res)
+    if (req.method === 'GET' && p === '/api/check-update') return await handleCheckUpdate(res)
     if (req.method === 'GET' && p === '/api/settings') return handleGetSettings(res)
     if (req.method === 'POST' && p === '/api/settings') return await handleSaveSettings(req, res)
     if (req.method === 'DELETE' && p.startsWith('/api/notes/')) {

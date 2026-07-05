@@ -74,6 +74,7 @@ function App(){
   const [searchFocus,setSearchFocus]=useState(false);
   const [toast,setToast]=useState(null);
   const [clock,setClock]=useState(clockStr());
+  const [updateInfo, setUpdateInfo] = useState({ appUpdate: false, launcherUpdate: false, downloadUrl: "" });
   const taRef=useRef(null);
   const coreRef=useRef(null);
   const orbTimer=useRef(null);
@@ -86,6 +87,17 @@ function App(){
 
   // initial vault load from the backend
   useEffect(()=>{ API.list().then(setItems).catch(()=>{}); },[]);
+  useEffect(() => {
+    API.checkUpdate()
+      .then((res) => {
+        setUpdateInfo({
+          appUpdate: res.appUpdateAvailable,
+          launcherUpdate: res.launcherUpdateAvailable,
+          downloadUrl: res.launcherDownloadUrl
+        });
+      })
+      .catch(() => {});
+  }, []);
   // while an image card is still being captioned server-side (pending), keep
   // refreshing the list until enrichment lands
   useEffect(()=>{
@@ -217,6 +229,19 @@ function App(){
           <span className="clock">{clock}</span>
         </div>
       </header>
+
+      {updateInfo.launcherUpdate && (
+        <div className="update-banner launcher-update">
+          <Icon name="spark" size={14} />
+          <span>A new version of the Stash Windows Launcher is available. Please <a href={updateInfo.downloadUrl} target="_blank" rel="noopener noreferrer">download Stash.exe</a> to upgrade.</span>
+        </div>
+      )}
+      {!updateInfo.launcherUpdate && updateInfo.appUpdate && (
+        <div className="update-banner app-update">
+          <Icon name="settings" size={14} />
+          <span>A Stash core update is available. Please close and restart the Stash application to apply.</span>
+        </div>
+      )}
 
       <div className="body">
         <nav className="rail">
