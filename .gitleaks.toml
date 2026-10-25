@@ -1,0 +1,16 @@
+title = "gitleaks config"
+
+# Keep the default rule set and add only the documented exceptions below.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "QVAC model registry identifiers, not credentials"
+regexes = [
+  '''QWEN3_[A-Z0-9_]+''',
+  '''LLAMA_3_2_[A-Z0-9_]+''',
+  '''SMOLVLM2_[A-Z0-9_]+''',
+  '''MMPROJ_[A-Z0-9_]+''',
+  '''EMBEDDINGGEMMA_[A-Z0-9_]+''',
+  '''GTE_LARGE_FP16''',
+]
